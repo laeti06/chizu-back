@@ -1,0 +1,20 @@
+{
+    "name": "laeti/chizu-back",
+    "description": "php",
+    "type": "json",
+    "require": {
+        "yes": "no"
+    },
+    "license": "proprietaire",
+    "autoload": {
+        "psr-4": {
+            "Laeti\\ChizuBack\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "yes"
+        }
+    ],
+    "minimum-stability": "stable"
+}

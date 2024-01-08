@@ -84,7 +84,20 @@ UPDATE cards
 SET picture = "https://i.pinimg.com/originals/b8/63/84/b86384719d650e379804ef0d2b9c4375.jpg"
 WHERE id = 3;
 
+CREATE TABLE card_types (
+    type_id SMALLINT PRIMARY KEY AUTO_INCREMENT,
+    type_name VARCHAR(50)
+);
 
+ALTER TABLE cards
+ADD COLUMN type_id SMALLINT,
+ADD FOREIGN KEY (type_id) REFERENCES card_types(type_id);
+
+INSERT INTO card_types (type_name)
+VALUES
+("exorciste"),
+("fleau"),
+("Tueur d'exorciste");
 
 
 

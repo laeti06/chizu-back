@@ -2,20 +2,32 @@
 include("./db_connect.php");
 $request_method = $_SERVER["REQUEST_METHOD"];
 
-// Autoriser toutes les origines à accéder à cet endpoint
 header("Access-Control-Allow-Origin: *");
-// Autoriser les méthodes spécifiées
+
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, PATCH, DELETE");
-// Autoriser certains en-têtes dans la requête
+
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
-// Indiquer si les cookies et les informations d'identification peuvent être envoyés
+
 header("Access-Control-Allow-Credentials: true");
-// Répondre à la requête OPTIONS pour les demandes pré-vérification CORS
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
+function setCorsHeaders() {
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, PATCH, DELETE");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization");
+    header("Access-Control-Allow-Credentials: true");
 
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(200);
+        exit();
+    }
+}
+
+// Utilisation de la fonction pour définir les en-têtes CORS dans votre script
+setCorsHeaders();
 switch ($request_method) {
     case 'GET':
         if (!empty($GET["id"])) {
@@ -64,14 +76,16 @@ function addCard()
 {
     global $conn;
     $data = json_decode(file_get_contents("php://input"), true);
-    if (isset($data['picture'], $data['name'], $data['power'], $data['type'])) {
+    if (isset($data['picture'], $data['name'], $data['power'], $data['type_id'])) {
         $picture = $data['picture'];
         $name = $data['name'];
         $power = $data['power'];
-        $type = $data['type'];
+        $type_id = $data['type_id'];
 
-        $query = "INSERT INTO cards (picture, name, power, type) VALUES ('$picture','$name', '$power', '$type')";
-        if (mysqli_query($conn, $query)) {
+        $query = "INSERT INTO cards (picture, name, power, type_id) VALUES (?, ?, ?, ?)";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("ssis", $picture, $name, $power, $type_id);
+        if ($stmt->execute()) {
             $response = array(
                 'status' => 'success',
                 'message' => 'Carte ajoutée avec succès.'
@@ -101,8 +115,11 @@ function supCard($id)
 {
     global $conn;
     $id = intval($id);
-    $query = "DELETE FROM cards WHERE id = $id";
-    if (mysqli_query($conn, $query)) {
+    $query = "DELETE FROM cards WHERE id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $id);
+
+    if ($stmt->execute()) {
         $response = array(
             'status' => 'success',
             'message' => 'Carte ajoutée avec succès.'
@@ -123,18 +140,29 @@ function modCard($id)
 {
     global $conn;
     $data = json_decode(file_get_contents("php://input"), true);
-    if (isset($data['picture'], $data['name'], $data['power'], $data['type'])) {
+    if (isset($data['picture'], $data['name'], $data['power'], $data['type_id'])) {
         $picture = $data['picture'];
         $name = $data['name'];
         $power = $data['power'];
-        $type = $data['type'];
-        
+        $type_id  = $data['type_id'];
+
+
+        $type_query = "SELECT type_id FROM card_type WHERE type_name = ?";
+        $type_stmt = $conn->prepare($type_query);
+        $type_stmt->bind_param("s", $type_name);
+        $type_stmt->execute();
+        $result = $type_stmt->get_result();
+        $type_row = $result->fetch_assoc();
+        $type_id = $type_row['type_id'];
+
+
         $query = "UPDATE cards 
-            SET picture = '$picture', name = '$name', power = '$power', type = '$type' 
-            WHERE id = $id";
+            SET picture = ?, name = ?, power = ?, type_id = ? 
+            WHERE id = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("sssii", $picture, $name, $power, $type_id, $id);
 
-
-        if (mysqli_query($conn, $query)) {
+        if ($stmt->execute()) {
             $response = array(
                 'status' => 'success',
                 'message' => 'Carte ajoutée avec succès.'

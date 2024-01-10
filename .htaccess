@@ -1,3 +1,4 @@
 RewriteEngine On # Activer le module Rewrite
 RewriteRule ^cards/?$ cards.php [NC,L]
 RewriteRule ^[^/]+/(\d+)$ cards.php?id=$1
+RewriteRule ^card_types$ card_types.php

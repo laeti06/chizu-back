@@ -10,24 +10,13 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 header("Access-Control-Allow-Credentials: true");
 
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
-function setCorsHeaders() {
-    header("Access-Control-Allow-Origin: *");
-    header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, PATCH, DELETE");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization");
-    header("Access-Control-Allow-Credentials: true");
 
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        http_response_code(200);
-        exit();
-    }
-}
 
-// Utilisation de la fonction pour définir les en-têtes CORS dans votre script
-setCorsHeaders();
 switch ($request_method) {
     case 'GET':
         if (!empty($GET["id"])) {
@@ -76,15 +65,15 @@ function addCard()
 {
     global $conn;
     $data = json_decode(file_get_contents("php://input"), true);
-    if (isset($data['picture'], $data['name'], $data['power'], $data['type_id'])) {
+    if (isset($data['picture'], $data['name'], $data['power'], $data['type_name'])) {
         $picture = $data['picture'];
         $name = $data['name'];
         $power = $data['power'];
-        $type_id = $data['type_id'];
+        $type_name = $data['type_name'];
 
-        $query = "INSERT INTO cards (picture, name, power, type_id) VALUES (?, ?, ?, ?)";
+        $query = "INSERT INTO cards (picture, name, power, type_id) VALUES (?, ?, ?, (SELECT type_id FROM card_types WHERE type_name = ?))";
         $stmt = $conn->prepare($query);
-        $stmt->bind_param("ssis", $picture, $name, $power, $type_id);
+        $stmt->bind_param("ssis", $picture, $name, $power, $type_name);
         if ($stmt->execute()) {
             $response = array(
                 'status' => 'success',
@@ -96,7 +85,8 @@ function addCard()
             header("HTTP/1.0 500 Internal Server Error");
             $response = array(
                 'status' => 'error',
-                'message' => 'Erreur lors de l\'ajout de la carte.'
+                'message' => 'Erreur lors de l\'ajout de la carte. avec parametre '+
+                $picture+' '+$name+' '+$power+' '+$type_name
             );
             header('Content-Type: application/json');
             echo json_encode($response);
@@ -140,14 +130,13 @@ function modCard($id)
 {
     global $conn;
     $data = json_decode(file_get_contents("php://input"), true);
-    if (isset($data['picture'], $data['name'], $data['power'], $data['type_id'])) {
+    if (isset($data['picture'], $data['name'], $data['power'], $data['type_name'])) {
         $picture = $data['picture'];
         $name = $data['name'];
         $power = $data['power'];
-        $type_id  = $data['type_id'];
+        $type_name  = $data['type_name'];
 
-
-        $type_query = "SELECT type_id FROM card_type WHERE type_name = ?";
+        $type_query = "SELECT type_id FROM card_types WHERE type_name = ?";
         $type_stmt = $conn->prepare($type_query);
         $type_stmt->bind_param("s", $type_name);
         $type_stmt->execute();
@@ -182,7 +171,7 @@ function modCard($id)
         header("HTTP/1.0 500 Internal Server Error");
         $response = array(
             'status' => 'error',
-            'message' => 'Erreur lors de l\'ajout de la carte.'
+            'message' => 'Erreur lors de la modification de la carte.'
         );
         header('Content-Type: application/json');
         echo json_encode($response);

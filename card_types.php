@@ -2,33 +2,20 @@
 include("./db_connect.php");
 $request_method = $_SERVER["REQUEST_METHOD"];
 
-// Autoriser toutes les origines à accéder à cet endpoint
 header("Access-Control-Allow-Origin: *");
-// Autoriser les méthodes spécifiées
+
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, PATCH, DELETE");
-// Autoriser certains en-têtes dans la requête
+
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
-// Indiquer si les cookies et les informations d'identification peuvent être envoyés
+
 header("Access-Control-Allow-Credentials: true");
-// Répondre à la requête OPTIONS pour les demandes pré-vérification CORS
+
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
-function setCorsHeaders() {
-    header("Access-Control-Allow-Origin: *");
-    header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, PATCH, DELETE");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization");
-    header("Access-Control-Allow-Credentials: true");
 
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        http_response_code(200);
-        exit();
-    }
-}
-
-// Utilisation de la fonction pour définir les en-têtes CORS dans votre script
-setCorsHeaders();
 switch ($request_method) {
     case 'GET':
         if (!empty($GET["id"])) {
@@ -100,8 +87,11 @@ function supCard($id)
 {
     global $conn;
     $id = intval($id);
-    $query = "DELETE FROM card_types WHERE id = $id";
-    if (mysqli_query($conn, $query)) {
+    $query = "DELETE FROM card_types WHERE id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt -> bind_param("i", $id);
+
+    if ($stmt->execute()) {
         $response = array(
             'status' => 'success',
             'message' => 'Carte ajoutée avec succès.'
@@ -126,21 +116,9 @@ function modCard($id)
     if (isset($data['type_name'])) {
         $type_name  = $data['type_name'];
 
-
-        $type_query = "SELECT type_id FROM card_type WHERE type_id = ?";
-        $type_stmt = $conn->prepare($type_query);
-        $type_stmt->bind_param("s", $type_id);
-        $type_stmt->execute();
-        $result = $type_stmt->get_result();
-        $type_row = $result->fetch_assoc();
-        $type_id = $type_row['type_id'];
-
-
-        $query = "UPDATE card_types
-            SET  type_name = ? 
-            WHERE id = ?";
+        $query = "UPDATE card_types SET type_name = ? WHERE type_id = ?";
         $stmt = $conn->prepare($query);
-        $stmt->bind_param("sssii", $type_name, $id);
+        $stmt->bind_param("si", $type_name, $type_id);
 
         if ($stmt->execute()) {
             $response = array(
@@ -168,3 +146,4 @@ function modCard($id)
         echo json_encode($response);
     }
 }
+?>
